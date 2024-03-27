@@ -45,6 +45,8 @@ function Email_Registration({onLoginClick}) {
   
       const handlePasswordSubmit = () => {
         if (password === confirmPassword) {
+          localStorage.setItem('userEmail', email);
+          localStorage.setItem('userpassword', password);
           // Passwords match
           setVerificationStatus("Password Confirmed");
           // Redirect to the next page after password confirmation

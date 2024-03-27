@@ -12,6 +12,7 @@ function LoginPage({ onLogin }) {
     if (password === '12345678') {
       // Update the parent component (App.js) that the user is logged in
       onLogin();
+      localStorage.setItem('userEmail', email);
       // Navigate to the next page
       navigate('/nextpage');
     } else {

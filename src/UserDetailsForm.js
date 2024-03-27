@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef ,useEffect} from "react";
 import Webcam from "react-webcam";
 
 
@@ -21,25 +21,28 @@ function UserDetailsForm() {
         isView:true
       },
       academicNumber:{
-        isView:true
+        isView:false
       },
       programName:{
-        isView:true
+        isView:false
       },
       batch:{
-        isView:true
+        isView:false
       },
       mobileNumber:{
         isView:true
       },
       fatherName:{
-        isView:true
+        isView:false
       },
       motherName:{
-        isView:true
+        isView:false
       }
       }
   
+
+
+      
   
     const [firstName, setFirstName] = useState("");
     const [middleName, setMiddleName] = useState("");
@@ -55,10 +58,14 @@ function UserDetailsForm() {
     const [popupOpen, setPopupOpen] = useState(false);
     const webcamRef = useRef(null);
     const [capturedImages, setCapturedImages] = useState([]);
+    const userEmail = localStorage.getItem('userEmail');
+    const userpassword = localStorage.getItem('userpassword');
   
   
   
       const [file, setFile] = useState(null);
+      const [verificationCode, setVerificationCode] = useState("");
+      const [isVerificationMode, setIsVerificationMode] = useState(false);
     
       const handleChange = (event) => {
         setFile(event.target.files[0]);
@@ -77,21 +84,21 @@ function UserDetailsForm() {
         return;
       }
     
+
+      if (verificationCode !== "1234") {
+        alert("Invalid verification code. Please enter correct code.");
+        return;
+      }
       // Here you can handle form submission, like sending data to backend, validation, etc.
       // For now, let's just log the data
       const userData = {
-        firstName,
-        middleName,
-        lastName,
-        dob,
-        gender,
-        academicNumber,
-        programName,
-        batch,
-        mobileNumber,
-        fatherName,
-        motherName,
+        "name":{"first":firstName, "last":lastName,"middle":middleName},
+        "dob":dob,
+        "gender":gender,
+        "mobile":mobileNumber,
         capturedImages,
+        "email":userEmail,
+        "password":userpassword
       };
   
       const formData = new FormData();
@@ -150,7 +157,45 @@ function UserDetailsForm() {
       newImages.splice(index, 1);
       setCapturedImages(newImages);
     };
+
+    useEffect(() => {
+      const fetchData = async () => {
+        try {
+          console.log("userEmail",userEmail);
+          const response = await fetch('http://127.0.0.1:5000/send_Data?userEmail='+userEmail);
+          if (!response.ok) {
+            throw new Error("Failed to fetch data");
+          }
+          const data = await response.json();
+          // Update state with fetched data, if data exists
+          if (data) {
+            console.log("data",data);
+            setFirstName(data.name.first || "");
+            setMiddleName(data.name.middle || "");
+            setLastName(data.name.last || "");
+            setDob(data.dob.$date || "");
+            setGender(data.gender || "male");
+            // setAcademicNumber(data.academicNumber || "");
+            // setProgramName(data.programName || "");
+            // setBatch(data.batch || "");
+            setMobileNumber(data.mobile || "");
+            // setFatherName(data.fatherName || "");
+            // setMotherName(data.motherName || "");
+            setCapturedImages(data.capturedImages || []);
+          }
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      };
   
+      // Call the fetchData function when the component mounts
+      fetchData();
+    }, [userEmail]);
+  
+    const handleVerify = () => {
+      setIsVerificationMode(true);
+    };
+
     return (
       <div className="container">
         <div className="header">
@@ -158,7 +203,7 @@ function UserDetailsForm() {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="input-container">
-          { permissions.fatherName.isView ? ( 
+          { permissions.firstName.isView ? ( 
             <input
               type="text"
               value={firstName}
@@ -251,16 +296,32 @@ function UserDetailsForm() {
         }
           </div>
           <div className="input-container">
-          { permissions.mobileNumber.isView ? ( 
-            <input
-              type="text"
-              value={mobileNumber}
-              onChange={(e) => setMobileNumber(e.target.value)}
-              placeholder="Mobile Number"
-              required
-            />
-            ) : null
-        }
+          {permissions.mobileNumber.isView && (
+            <>
+              <input
+                type="text"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                placeholder="Mobile Number"
+                required
+              />
+              <button type="button" onClick={handleVerify}>
+                Verify
+              </button>
+            </>
+          )}
+          {/* Render Verification Code input only if in verification mode */}
+          {isVerificationMode && (
+            <>
+              <input
+                type="text"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                placeholder="Enter Verification Code"
+                required
+              />
+            </>
+          )}
            { permissions.fatherName.isView ? ( 
             <input
               type="text"
@@ -286,6 +347,7 @@ function UserDetailsForm() {
               type="file"
               accept=".pdf"
               onChange={handleChange}
+              required
             />
         </form>
   
